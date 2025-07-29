@@ -39,7 +39,7 @@ jobs:
           --cov=utils \
           --cov=fixtures \
           --cov-report=term-missing \
-          --cov-report=xml \
+          --cov-report=html \
           --cov-fail-under=80 \
           --html=reports/pytest_report.html \
           --self-contained-html \
@@ -51,8 +51,8 @@ jobs:
         name: pytest-html-report
         path: reports/pytest_report.html
 
-    - name: Upload coverage XML report
+    - name: Upload coverage HTML report
       uses: actions/upload-artifact@v4
       with:
-        name: coverage-xml-report
-        path: coverage.xml
+        name: coverage-html-report
+        path: htmlcov/
