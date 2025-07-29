@@ -27,18 +27,27 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-pip-
 
-    - name: Install dependencies
-      run: |
-        pip install --upgrade pip
-        pip install -r requirements.txt
-
-    - name: Run tests with HTML report
+    - name: Run tests with coverage and HTML report
       run: |
         mkdir -p reports
-        pytest --html=reports/pytest_report.html --self-contained-html -v
+        pytest \
+          --cov=utils \
+          --cov=fixtures \
+          --cov-report=term-missing \
+          --cov-report=xml \
+          --cov-fail-under=80 \
+          --html=reports/pytest_report.html \
+          --self-contained-html \
+          -v
 
     - name: Upload Pytest HTML report
       uses: actions/upload-artifact@v4
       with:
         name: pytest-html-report
         path: reports/pytest_report.html
+
+    - name: Upload coverage XML report
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-xml-report
+        path: coverage.xml

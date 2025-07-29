@@ -1,7 +1,7 @@
 import subprocess
 from pathlib import Path
+from utils.exceptions import GitCommandExecutionError
 
-import pytest
 
 from logging_config import loggers
 
@@ -37,16 +37,24 @@ def run_git_command(command: list[str], cwd: Path) -> subprocess.CompletedProces
     """
     Run a Git command with logging, and return the result.
 
-    Does NOT raise on failure — caller is responsible for checking returncode.
-    Catches and logs system-level errors like invalid directory or missing git.
+    The function captures system-level execution errors (e.g. invalid directory, Git not installed)
+    and raises a custom GitCommandExecutionError to simplify debugging and tracing in logs.
+
+    Note:
+    - This function does NOT raise on Git command failure (non-zero return code).
+      Caller is expected to inspect `result.returncode` to check for Git-level errors.
+    - Only system-level issues (like OS or subprocess errors) raise an exception.
 
     Parameters:
-    - command: The Git command to run as a list of arguments.
-    - cwd: The working directory to run the command in.
+    - command (list[str]): The Git command to run (as a list of strings).
+    - cwd (Path): The working directory in which to run the Git command.
 
     Returns:
-    - subprocess.CompletedProcess: Contains returncode, stdout, stderr.
-      If an exception is raised during execution, returns a dummy result with code 1.
+    - subprocess.CompletedProcess: Includes .returncode, .stdout, .stderr from the command.
+
+    Raises:
+    - GitCommandExecutionError: If a system-level error occurs during command execution.
+      This preserves the original exception for easier debugging (via `raise ... from e`).
     """
     infra_logger.debug(f"Running command: {' '.join(command)} in {cwd}")
     try:
@@ -60,4 +68,4 @@ def run_git_command(command: list[str], cwd: Path) -> subprocess.CompletedProces
     except Exception as e:
         infra_logger.error(f"Failed to run command: {' '.join(command)} in {cwd}")
         infra_logger.error(f"Exception: {type(e).__name__} - {e}")
-        raise
+        raise GitCommandExecutionError(f"Git command failed in {cwd}: {e}") from e

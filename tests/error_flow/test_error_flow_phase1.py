@@ -8,7 +8,7 @@ git_logger = loggers["git_test"]
 
 @pytest.mark.phase1
 @pytest.mark.remote
-@pytest.mark.error
+@pytest.mark.error_flow
 def test_git_clone_non_existent_repo(tmp_path):
     """
     Attempt to clone a non-existent repo and expect failure.
@@ -30,7 +30,7 @@ def test_git_clone_non_existent_repo(tmp_path):
 
 @pytest.mark.phase1
 @pytest.mark.core
-@pytest.mark.error
+@pytest.mark.error_flow
 def test_git_add_non_existing_file(git_init_repo):
     """
     Verify that 'git add' fails when trying to stage a non-existing file.
@@ -43,7 +43,7 @@ def test_git_add_non_existing_file(git_init_repo):
 
 @pytest.mark.phase1
 @pytest.mark.core
-@pytest.mark.error
+@pytest.mark.error_flow
 def test_commit_without_user_config(git_init_repo):
     """
     Verify that 'git commit' fails if user.name and user.email are not configured.
@@ -60,7 +60,7 @@ def test_commit_without_user_config(git_init_repo):
 
 @pytest.mark.phase1
 @pytest.mark.remote
-@pytest.mark.error
+@pytest.mark.error_flow
 def test_remote_add_with_invalid_url(local_repo_with_commit):
     """
     Verify that 'git remote add' with invalid URL does not fail immediately,
@@ -83,7 +83,7 @@ def test_remote_add_with_invalid_url(local_repo_with_commit):
 
 @pytest.mark.phase1
 @pytest.mark.remote
-@pytest.mark.error
+@pytest.mark.error_flow
 def test_push_without_remote(local_repo_with_commit):
     """
     Verify that 'git push' fails if no remote is configured.
@@ -98,7 +98,7 @@ def test_push_without_remote(local_repo_with_commit):
 
 
 @pytest.mark.phase1
-@pytest.mark.error
+@pytest.mark.error_flow
 def test_push_without_upstream_set(local_repo_with_commit, git_bare_server):
     """
     Verify that 'git push' fails if remote exists but upstream branch is not set.
