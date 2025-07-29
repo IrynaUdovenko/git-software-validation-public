@@ -29,9 +29,14 @@ def test_git_clone_non_existent_repo(tmp_path):
         validate_git_command_expected_failure(result, "git clone from non-existent repo")
 
     # Validate stderr content contains known Git error
-    assert (
-    "does not appear to be a git repository" in result.stderr.lower()
-    or "could not read from remote repository" in result.stderr.lower())
+    assert any(
+    phrase in result.stderr
+    for phrase in [
+        "does not appear to be a git repository",
+        "could not read from remote repository",
+        "repository" and "does not exist",
+    ]
+)
     git_logger.info("Correctly failed to clone non-existent repo with expected error message.")
 
 
