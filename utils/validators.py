@@ -1,31 +1,34 @@
 from pathlib import Path
-
+from utils.exceptions import InvalidGitCommandError, GitCommandFailedError
 from logging_config import loggers
 
 git_logger = loggers["git_test"]
 
 
-def assert_git_command_success(result, command: str):
+def validate_git_command_success(result, command: str, expected_failure: bool = False):
     """
-    Validates that a git command executed successfully (exit code 0).
-    Logs stdout/stderr if it fails.
+    Validates the outcome of a Git command.
+    
+    - Raises InvalidGitCommandError if the command is not recognized by Git.
+    - Raises GitCommandFailedError for all other non-zero return codes.
     """
     if result.returncode != 0:
-        git_logger.error(f"Command failed: {command}")
-        git_logger.error(f"STDOUT: {result.stdout.strip()}")
-        git_logger.error(f"STDERR: {result.stderr.strip()}")
-    assert result.returncode == 0, f"Git command failed: {command}"
+        # Log ERROR only if it's an unexpected failure
+        log_fn = git_logger.info if expected_failure else git_logger.error
+        log_fn(f"Git command failed: {command}")
+        log_fn(f"STDOUT: {result.stdout.strip()}")
+        log_fn(f"STDERR: {result.stderr.strip()}")
+        
+        # Detect invalid command from stderr
+        if "git: '" in result.stderr and "' is not a git command" in result.stderr:
+            raise InvalidGitCommandError(f"Invalid Git command: {command}")
+        
+        raise GitCommandFailedError(f"Git command failed: {command}")
+    
+    git_logger.debug(f"Git command succeeded: {command}")
 
-
-def assert_git_command_failure(result, command: str):
-    """
-    Validates that a git command failed (non-zero exit code).
-    Logs stdout/stderr if it unexpectedly succeeded.
-    """
-    if result.returncode == 0:
-        git_logger.error(f"Unexpected success: {command}")
-        git_logger.error(f"STDOUT: {result.stdout.strip()}")
-    assert result.returncode != 0, f"Git command unexpectedly succeeded: {command}"
+def validate_git_command_expected_failure(result, context: str):
+    return validate_git_command_success(result, context, expected_failure=True)
 
 
 def assert_with_log(condition: bool, message: str, logger=None):

@@ -5,7 +5,7 @@ import pytest
 from logging_config import loggers
 from utils.helpers import run_git_command
 from utils.validators import (
-    assert_git_command_success,
+    validate_git_command_success,
     assert_git_dir_structure_valid,
     assert_with_log,
 )
@@ -41,7 +41,7 @@ def test_git_clone_from_bare_repo(git_bare_server, git_client_path):
     clone_path = git_client_path
 
     result = run_git_command(["git", "clone", str(remote_repo_path), str(clone_path)], cwd=clone_path.parent)
-    assert_git_command_success(result, f"git clone {remote_repo_path} {clone_path}")
+    validate_git_command_success(result, f"git clone {remote_repo_path} {clone_path}")
     git_logger.info(f"Successfully cloned from {remote_repo_path} to {clone_path}")
 
     git_dir = clone_path / ".git"
@@ -65,7 +65,7 @@ def test_git_remote_add_origin_writes_to_config(git_init_repo, git_bare_server):
 
     # Add remote
     result = run_git_command(["git", "remote", "add", remote_name, str(remote_path)], cwd=repo_path)
-    assert_git_command_success(result, f"git remote add {remote_name} {remote_path}")
+    validate_git_command_success(result, f"git remote add {remote_name} {remote_path}")
 
     # Validate .git/config
     config_path = repo_path / ".git" / "config"
@@ -94,17 +94,17 @@ def test_git_push_to_bare_repo(git_bare_server, local_repo_with_commit):
 
     # Add remote
     result = run_git_command(["git", "remote", "add", "origin", str(remote_path)], cwd=client_repo)
-    assert_git_command_success(result, f"git remote add origin {str(remote_path)}")
+    validate_git_command_success(result, f"git remote add origin {str(remote_path)}")
     git_logger.info("Added remote 'origin' to client repo.")
 
     # Push to remote
     result = run_git_command(["git", "push", "-u", "origin", "main"], cwd=client_repo)
-    assert_git_command_success(result, "git push -u origin main")
+    validate_git_command_success(result, "git push -u origin main")
     git_logger.info("Pushed to remote origin.")
 
     # Get commit hash locally
     local_hash_result = run_git_command(["git", "rev-parse", "HEAD"], cwd=client_repo)
-    assert_git_command_success(local_hash_result, "git rev-parse HEAD (local)")
+    validate_git_command_success(local_hash_result, "git rev-parse HEAD (local)")
     local_commit_hash = local_hash_result.stdout.strip()
 
     # Check remote HEAD
@@ -147,14 +147,14 @@ def test_git_pull_fast_forward(
         ["git", "config", "--global", "init.defaultBranch", "main"],
         cwd=client2_local_repo_path.parent,
     )
-    assert_git_command_success(result, "git config init.defaultBranch main")
+    validate_git_command_success(result, "git config init.defaultBranch main")
 
     # Step 1: Clone the bare repo as client 2 (before any commits)
     result = run_git_command(
         ["git", "clone", str(remote_repo_path), str(client2_local_repo_path)],
         cwd=client2_local_repo_path.parent,
     )
-    assert_git_command_success(result, "git clone for client 2")
+    validate_git_command_success(result, "git clone for client 2")
     git_logger.info("Client 2 succesfully cloned bare empty repo.")
 
     # Step 2: Client 1 pushes commit to the server
@@ -163,7 +163,7 @@ def test_git_pull_fast_forward(
 
     # Step 3: Client 2 performs 'git pull'
     result = run_git_command(["git", "pull"], cwd=client2_local_repo_path)
-    assert_git_command_success(result, "git pull")
+    validate_git_command_success(result, "git pull")
     git_logger.info("Client 2 successfully pulled changes from remote bare repo.")
 
     # Step 4: Get latest commit hash on both sides
@@ -206,7 +206,7 @@ def test_git_minimal_smoke_remote_flow(
         ["git", "clone", str(remote_repo_path), str(client2_local_repo_path)],
         cwd=client2_local_repo_path.parent,
     )
-    assert_git_command_success(result, "git clone by client 2")
+    validate_git_command_success(result, "git clone by client 2")
     git_logger.info("Client 2 successfully cloned the updated remote repo.")
 
     # Step 3: Verify Client 2 has the latest commit

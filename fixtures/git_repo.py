@@ -5,7 +5,7 @@ import pytest
 
 from logging_config import loggers
 from utils.helpers import create_temp_files_in_repo, run_git_command
-from utils.validators import assert_git_command_success
+from utils.validators import validate_git_command_success
 
 # Get the loggers for different parts of the project
 infra_logger = loggers["infra"]
@@ -24,7 +24,7 @@ def git_init_repo(tmp_path, request) -> Path:
     """
     # Set global default branch to 'main'
     result = run_git_command(["git", "config", "--global", "init.defaultBranch", "main"], cwd=tmp_path)
-    assert_git_command_success(result, "git config --global init.defaultBranch main")
+    validate_git_command_success(result, "git config --global init.defaultBranch main")
 
     # Register cleanup to unset the global config after test
     def unset_default_branch():
@@ -34,7 +34,7 @@ def git_init_repo(tmp_path, request) -> Path:
 
     # Initialize the Git repo
     result = run_git_command(["git", "init"], cwd=tmp_path)
-    assert_git_command_success(result, "git init")
+    validate_git_command_success(result, "git init")
 
     return tmp_path
 
@@ -55,7 +55,7 @@ def repo_with_staged_file(git_init_repo, set_git_user_config) -> tuple[Path, Pat
     # Create and stage file
     test_file = create_temp_files_in_repo(git_init_repo, ["file.txt"])[0]
     result = run_git_command(["git", "add", test_file.name], cwd=git_init_repo)
-    assert_git_command_success(result, f"git add {test_file.name}")
+    validate_git_command_success(result, f"git add {test_file.name}")
 
     infra_logger.debug(f"Staged file: '{test_file.name}' in repo: {git_init_repo}")
 
@@ -81,11 +81,11 @@ def commit_temp_file_with_local_config(set_git_user_config) -> Callable[[Path], 
         # Create and stage file
         file_path = create_temp_files_in_repo(repo_path, ["test.txt"])[0]
         result = run_git_command(["git", "add", file_path.name], cwd=repo_path)
-        assert_git_command_success(result, f"git add {file_path.name}")
+        validate_git_command_success(result, f"git add {file_path.name}")
 
         # Commit
         result = run_git_command(["git", "commit", "-m", "Test commit"], cwd=repo_path)
-        assert_git_command_success(result, "git commit")
+        validate_git_command_success(result, "git commit")
 
         infra_logger.info("Created repo with local config and initial commit.")
 
@@ -134,11 +134,11 @@ def set_git_user_config(request) -> Callable[[Path, str, str, bool], None]:
 
         # Set user.name
         result = run_git_command(["git", "config"] + scope_args + ["user.name", username], cwd=repo_path)
-        assert_git_command_success(result, f"git config {scope_args} user.name {username}")
+        validate_git_command_success(result, f"git config {scope_args} user.name {username}")
 
         # Set user.email
         result = run_git_command(["git", "config"] + scope_args + ["user.email", email], cwd=repo_path)
-        assert_git_command_success(result, f"git config {scope_args} user.email {email}")
+        validate_git_command_success(result, f"git config {scope_args} user.email {email}")
 
         # Automatically clean up global config after the test
         if global_:

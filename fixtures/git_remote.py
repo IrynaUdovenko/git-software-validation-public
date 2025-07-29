@@ -5,7 +5,7 @@ import pytest
 
 from logging_config import loggers
 from utils.helpers import run_git_command
-from utils.validators import assert_git_command_success
+from utils.validators import validate_git_command_success
 
 # Get the loggers for different parts of the project
 infra_logger = loggers["infra"]
@@ -36,14 +36,14 @@ def make_cloned_repo_with_commit_factory(git_bare_server, git_client_path, commi
             ["git", "config", "--global", "init.defaultBranch", "main"],
             cwd=client_path.parent,
         )
-        assert_git_command_success(result, "git config init.defaultBranch")
+        validate_git_command_success(result, "git config init.defaultBranch")
 
         # Clone the remote
         result = run_git_command(
             ["git", "clone", str(remote_repo_path), str(client_path)],
             cwd=client_path.parent,
         )
-        assert_git_command_success(result, "git clone")
+        validate_git_command_success(result, "git clone")
         infra_logger.info("Client successfully cloned remote repo and set default branch to 'main'.")
 
         # Apply local config + commit
@@ -66,11 +66,11 @@ def make_local_repo_and_push_factory(local_repo_with_commit) -> Callable[[Path, 
 
         # Add remote
         result = run_git_command(["git", "remote", "add", remote_name, str(remote_repo_path)], cwd=repo_path)
-        assert_git_command_success(result, f"git remote add {remote_name}")
+        validate_git_command_success(result, f"git remote add {remote_name}")
 
         # Push commit
         result = run_git_command(["git", "push", "-u", remote_name, branch_name], cwd=repo_path)
-        assert_git_command_success(result, f"git push to {remote_name}/{branch_name}")
+        validate_git_command_success(result, f"git push to {remote_name}/{branch_name}")
 
         return repo_path
 
@@ -110,7 +110,7 @@ def make_cloned_repo_and_push_factory(
 
         # Push commit
         result = run_git_command(["git", "push"], cwd=repo_path)
-        assert_git_command_success(result, f"git push to {remote_name}/{branch_name}")
+        validate_git_command_success(result, f"git push to {remote_name}/{branch_name}")
 
         return repo_path, actual_remote_path
 
@@ -126,11 +126,11 @@ def git_bare_server(tmp_path_factory) -> Path:
     bare_repo_path = base_dir / "remote-repo.git"
     bare_repo_path.mkdir()
     result = run_git_command(["git", "init", "--bare"], cwd=bare_repo_path)
-    assert_git_command_success(result, "git init --bare")
+    validate_git_command_success(result, "git init --bare")
 
     # Set HEAD to main branch (otherwise it defaults to master)
     result = run_git_command(["git", "symbolic-ref", "HEAD", "refs/heads/main"], cwd=bare_repo_path)
-    assert_git_command_success(result, "git symbolic-ref HEAD refs/heads/main")
+    validate_git_command_success(result, "git symbolic-ref HEAD refs/heads/main")
     head_file = bare_repo_path / "HEAD"
     head_content = head_file.read_text().strip()
     assert head_content == "ref: refs/heads/main", f"Expected HEAD to point to main, got: {head_content}"

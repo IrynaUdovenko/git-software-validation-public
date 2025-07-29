@@ -4,7 +4,7 @@ import pytest
 
 from logging_config import loggers
 from utils.helpers import run_git_command
-from utils.validators import assert_git_command_success, assert_with_log
+from utils.validators import validate_git_command_success, assert_with_log
 
 git_logger = loggers["git_test"]
 
@@ -48,11 +48,11 @@ def test_git_config_sets_default_branch_to_main(tmp_path):
 
     # Set default branch to 'main' globally
     result = run_git_command(["git", "config", "--global", "init.defaultBranch", "main"], cwd=tmp_path)
-    assert_git_command_success(result, "git config --global init.defaultBranch main")
+    validate_git_command_success(result, "git config --global init.defaultBranch main")
 
     # Init repo
     result = run_git_command(["git", "init"], cwd=tmp_path)
-    assert_git_command_success(result, "git init")
+    validate_git_command_success(result, "git init")
 
     # Read .git/HEAD
     head_file = tmp_path / ".git" / "HEAD"
@@ -83,12 +83,12 @@ def test_git_config_local_overrides_global(set_git_user_config, request):
 
     # Get commit hash
     result = run_git_command(["git", "rev-parse", "HEAD"], cwd=repo_path)
-    assert_git_command_success(result, "git rev-parse HEAD")
+    validate_git_command_success(result, "git rev-parse HEAD")
     commit_hash = result.stdout.strip()
 
     # Show raw commit object
     result = run_git_command(["git", "cat-file", "-p", commit_hash], cwd=repo_path)
-    assert_git_command_success(result, f"git cat-file -p {commit_hash}")
+    validate_git_command_success(result, f"git cat-file -p {commit_hash}")
     commit_content = result.stdout
 
     # Check author line
