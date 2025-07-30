@@ -58,7 +58,7 @@ jobs:
         path: htmlcov/
 
     - name: Upload custom logs
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: test-logs
         path: logs/
