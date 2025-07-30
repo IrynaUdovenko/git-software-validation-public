@@ -59,16 +59,17 @@ def test_git_add_non_existing_file(git_init_repo):
 @pytest.mark.phase1
 @pytest.mark.core
 @pytest.mark.error_flow
-def test_commit_without_user_config(git_init_repo):
+def test_commit_without_user_config(git_init_repo, request):
     """
     Verify that 'git commit' fails if user.name and user.email are not configured.
     """
     # Create and stage file
-    test_file = create_temp_files_in_repo(git_init_repo, ["file.txt"])[0]
+    cfg = request.config
+    test_file = create_temp_files_in_repo(git_init_repo, [cfg.local_filename])[0]
     run_git_command(["git", "add", test_file.name], cwd=git_init_repo)
 
     # Try to commit without config
-    result = run_git_command(["git", "commit", "-m", "Test commit"], cwd=git_init_repo)
+    result = run_git_command(["git", "commit", "-m", cfg.local_commit_message], cwd=git_init_repo)
     with pytest.raises(GitCommandFailedError):
         validate_git_command_expected_failure(result, "git commit without config")
 

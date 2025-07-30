@@ -16,7 +16,7 @@ from utils.exceptions import GitCommandFailedError
 git_logger = loggers["git_test"]
 
 
-def stage_and_validate_files(repo_path: Path, target: list[str]) -> list[str]:
+def stage_and_return_all_staged_files(repo_path: Path, target: list[str]) -> list[str]:
     """
     Stage files using 'git add <target>' and verify they were staged.
 
@@ -75,32 +75,19 @@ def test_git_init_structure_validity(git_init_repo):
 
 @pytest.mark.phase1
 @pytest.mark.core
-def test_git_add_single_file(git_init_repo):
+@pytest.mark.parametrize("files_list, stage_target", [(["file1.txt"], "file1.txt"), (["file2.txt", "file3.txt"], ".")])
+def test_git_add_file_or_all(git_init_repo, files_list, stage_target):
     """
-    Verify that 'git add <filename>' stages a single new file correctly.
+    1. Verify that 'git add <filename>' stages a single new file correctly.
 
-    Uses 'git ls-files' to check that the file is tracked after staging.
-    """
-    created_files = create_temp_files_in_repo(git_init_repo, ["file1.txt"])
-    staged_files = stage_and_validate_files(git_init_repo, [created_files[0].name])
-
-    assert created_files[0].name in staged_files, f"{created_files[0].name} not found in staged files"
-    git_logger.info(f"Confirmed that file '{created_files[0].name}' was staged successfully.")
-
-
-@pytest.mark.phase1
-@pytest.mark.core
-def test_git_add_all_files(git_init_repo):
-    """
-    Verify that 'git add .' stages all new files in the working directory.
+    2. Verify that 'git add .' stages all new files in the working directory.
 
     Uses 'git ls-files' to confirm all created files are staged.
     """
-    filenames = ["file2.txt", "file3.txt"]
-    create_temp_files_in_repo(git_init_repo, filenames)
-    staged_files = stage_and_validate_files(git_init_repo, ["."])
+    create_temp_files_in_repo(git_init_repo, files_list)
+    staged_files = stage_and_return_all_staged_files(git_init_repo, [stage_target])
 
-    for name in filenames:
+    for name in files_list:
         assert name in staged_files, f"{name} not found in staged files"
         git_logger.info(f"Confirmed that file '{name}' was staged successfully.")
 
@@ -114,7 +101,7 @@ def test_git_commit_creates_commit_object(repo_with_staged_file):
     """
     Verify that 'git commit' creates a valid commit object.
 
-    First checks that 'git rev-parse HEAD' fails before the commit,
+    First checks that 'git rev-parse HEAD' (shows SHA of the latest commit) fails before the commit,
     then runs 'git commit' and verifies that a valid commit hash is created.
     """
     repo_path, _ = repo_with_staged_file
@@ -143,7 +130,7 @@ def test_git_commit_creates_commit_object(repo_with_staged_file):
 
 @pytest.mark.phase1
 @pytest.mark.core
-def test_git_log_shows_latest_commit(local_repo_with_commit):
+def test_git_log_shows_latest_commit(local_repo_with_commit, request):
     """
     Verify that 'git log' returns the latest commit with correct author and message.
 
@@ -157,8 +144,9 @@ def test_git_log_shows_latest_commit(local_repo_with_commit):
     log_output = result.stdout
     git_logger.debug(f"Git log output:\n{log_output}")
 
-    expected_author = "Local User <local@example.com>"
-    expected_message = "Test commit"
+    cfg = request.config
+    expected_author = f"{cfg.local_git_username} <{cfg.local_git_email}>"
+    expected_message = cfg.local_commit_message
 
     assert_with_log(
         expected_author in log_output,
@@ -182,20 +170,21 @@ def test_git_log_shows_latest_commit(local_repo_with_commit):
 @pytest.mark.core
 @pytest.mark.integration
 @pytest.mark.smoke
-def test_git_minimal_working_to_committed_flow(git_init_repo, set_git_user_config):
+def test_git_minimal_working_to_committed_flow(git_init_repo, set_git_user_config, request):
     """
     Verify the flow from working directory -> staging -> committed.
     Ensures all core Git operations work together.
     """
+    cfg= request.config
 
     # Set config (local by default)
     set_git_user_config(git_init_repo)
     git_logger.info("Set local user.name and user.email.")
 
     # Create file
-    file_path = create_temp_files_in_repo(git_init_repo, ["file.txt"])[0]
-    assert_with_log(file_path.exists(), "file.txt not found in working directory", git_logger)
-    git_logger.info("Created file.txt in working directory.")
+    file_path = create_temp_files_in_repo(git_init_repo, [cfg.local_filename])[0]
+    assert_with_log(file_path.exists(), f"{cfg.local_filename} not found in working directory", git_logger)
+    git_logger.info(f"Created {cfg.local_filename} in working directory.")
 
     # Add to staging
     result = run_git_command(["git", "add", file_path.name], cwd=git_init_repo)
@@ -203,9 +192,9 @@ def test_git_minimal_working_to_committed_flow(git_init_repo, set_git_user_confi
     git_logger.info("Added file.txt to staging area.")
 
     # Commit
-    result = run_git_command(["git", "commit", "-m", "Initial commit"], cwd=git_init_repo)
+    result = run_git_command(["git", "commit", "-m", cfg.local_commit_message], cwd=git_init_repo)
     validate_git_command_success(result, "git commit")
-    git_logger.info("Committed file.txt with message 'Initial commit'.")
+    git_logger.info(f"Committed {cfg.local_filename} with message {cfg.local_commit_message}.")
 
     # Verify in log
     result = run_git_command(["git", "log", "-1", "--name-only"], cwd=git_init_repo)
@@ -213,8 +202,8 @@ def test_git_minimal_working_to_committed_flow(git_init_repo, set_git_user_confi
 
     log_output = result.stdout
     assert_with_log(
-        "file.txt" in log_output,
-        f"file.txt not found in latest commit log:\n{log_output}",
+        cfg.local_filename in log_output,
+        f"{cfg.local_filename} not found in latest commit log:\n{log_output}",
         git_logger,
     )
-    git_logger.info("Verified file.txt appears in latest git log.")
+    git_logger.info(f"Verified {cfg.local_filename} appears in latest git log.")

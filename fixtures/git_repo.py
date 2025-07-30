@@ -63,7 +63,7 @@ def repo_with_staged_file(git_init_repo, set_git_user_config) -> tuple[Path, Pat
 
 
 @pytest.fixture
-def commit_temp_file_with_local_config(set_git_user_config) -> Callable[[Path], Path]:
+def commit_temp_file_with_local_config(set_git_user_config, request) -> Callable[[Path], Path]:
     """
     Factory Fixture that applies local Git user config, stages a file, and commits it.
     Designed to be reused after 'git init' or 'git clone'.
@@ -76,15 +76,16 @@ def commit_temp_file_with_local_config(set_git_user_config) -> Callable[[Path], 
 
     def _apply(repo_path: Path) -> Path:
         # Apply local config
-        set_git_user_config(repo_path, username="Local User", email="local@example.com")
+        cfg = request.config
+        set_git_user_config(repo_path, username=cfg.local_git_username, email=cfg.local_git_email)
 
         # Create and stage file
-        file_path = create_temp_files_in_repo(repo_path, ["test.txt"])[0]
+        file_path = create_temp_files_in_repo(repo_path, [cfg.local_filename])[0]
         result = run_git_command(["git", "add", file_path.name], cwd=repo_path)
         validate_git_command_success(result, f"git add {file_path.name}")
 
         # Commit
-        result = run_git_command(["git", "commit", "-m", "Test commit"], cwd=repo_path)
+        result = run_git_command(["git", "commit", "-m", cfg.local_commit_message], cwd=repo_path)
         validate_git_command_success(result, "git commit")
 
         infra_logger.info("Created repo with local config and initial commit.")
@@ -129,7 +130,16 @@ def set_git_user_config(request) -> Callable[[Path, str, str, bool], None]:
         set_git_user_config(repo_path, username="Alice", email="alice@example.com" )     # Custom name and email
     """
 
-    def _apply(repo_path, username="Test User", email="test@example.com", global_=False):
+    def _apply(repo_path, username=None, email=None, global_=False):
+        # Get config values
+        cfg = request.config
+
+        # Set default user name and email if not passed
+        if username is None:
+            username = cfg.global_git_username if global_ else cfg.local_git_username
+        if email is None:
+            email = cfg.global_git_email if global_ else cfg.local_git_email
+
         scope_args = ["--global"] if global_ else []
 
         # Set user.name

@@ -76,7 +76,7 @@ def test_git_config_local_overrides_global(set_git_user_config, request):
     """
 
     # Set global config first
-    set_git_user_config(repo_path=None, username="Global User", email="global@example.com", global_=True)
+    set_git_user_config(repo_path=None, global_=True)
 
     # Get repo with local config and commit
     repo_path = request.getfixturevalue("local_repo_with_commit")
@@ -92,7 +92,8 @@ def test_git_config_local_overrides_global(set_git_user_config, request):
     commit_content = result.stdout
 
     # Check author line
-    expected_author = "Local User <local@example.com>"
+    cfg = request.config
+    expected_author = f"{cfg.local_git_username} <{cfg.local_git_email}>"
     match = re.search(r"^author\s+(.+?\s<.+?>)", commit_content, re.MULTILINE)
     actual_author = match.group(1) if match else "<not found>"
     assert_with_log(
