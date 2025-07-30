@@ -40,6 +40,10 @@ def setup_logging(log_dir: Path = Path("logs")):
             file_handler = logging.FileHandler(log_dir / f"{name}.log", mode="w")
             file_handler.setFormatter(formatter)
 
+            file_handler.setLevel(logging.DEBUG)  # Set file handler to DEBUG to capture all logs
+
+            console_handler.setLevel(logging.INFO) # Set console handler to INFO to reduce noise in HTML report
+
             logger.addHandler(console_handler)
             logger.addHandler(file_handler)
 
