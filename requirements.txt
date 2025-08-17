@@ -1,3 +1,9 @@
 pytest
 pytest-html
 pytest-cov
+fastapi
+uvicorn[standard]
+SQLAlchemy[asyncio]>=2.0,<2.1
+asyncpg>=0.29,<0.30
+passlib[bcrypt]
+pydantic[email]
