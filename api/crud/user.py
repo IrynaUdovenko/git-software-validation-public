@@ -1,18 +1,15 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.exc import IntegrityError, SQLAlchemyError
-from passlib.context import CryptContext
+from sqlalchemy.exc import IntegrityError, OperationalError, SQLAlchemyError
+from api.utils.auth_utils import hash_password, validate_password
+from api.utils.token_utils import decode_access_token
 from sqlalchemy import select
-from utils.exceptions import EmailAlreadyExists, DatabaseError
+from utils.exceptions import EmailAlreadyExists, DatabaseError, DatabaseUnavailable
 
 from api.models.users import User
 from api.schemas.users import UserCreate
+from api.schemas.users import UserResponse
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
-def hash_password(password: str) -> str:
-    return pwd_context.hash(password)
-
-async def create_user(user_data: UserCreate, session: AsyncSession) -> User:
+async def create_user(user_data: UserCreate, session: AsyncSession) -> UserResponse:
     hashed_password = hash_password(user_data.password)
 
     new_user = User(
@@ -25,17 +22,35 @@ async def create_user(user_data: UserCreate, session: AsyncSession) -> User:
         session.add(new_user)
         await session.commit()
         await session.refresh(new_user)
-        return new_user
+        return UserResponse.from_orm(new_user)
 
-    except IntegrityError:
-        await session.rollback()
-        raise EmailAlreadyExists("User with this email already exists.")
+    except IntegrityError as e:
+        raise EmailAlreadyExists() from e
 
-    except SQLAlchemyError:
-        await session.rollback()
-        raise DatabaseError("Database error occurred.")
+    except OperationalError as e:
+        raise DatabaseUnavailable() from e
 
-async def get_user_by_email(email: str, session: AsyncSession) -> User | None:
+    except SQLAlchemyError as e:
+        raise DatabaseError() from e
+
+    finally:
+        if session.in_transaction():
+            await session.rollback()
+
+async def authenticate_user(email: str, password: str, session: AsyncSession) -> UserResponse | None:
     stmt = select(User).where(User.email == email)
     result = await session.execute(stmt)
-    return result.scalar_one_or_none()
+    user = result.scalar_one_or_none()
+
+    if not user or not validate_password(password, user.hashed_password):
+        return None
+
+    return UserResponse.from_orm(user) 
+
+async def get_current_user(token: str, session: AsyncSession = AsyncSession) -> UserResponse | None:
+    email = decode_access_token(token)
+    
+    result = await session.execute(select(User).where(User.email == email))
+    user = result.scalar_one_or_none()
+
+    return UserResponse.from_orm(user) if user else None
