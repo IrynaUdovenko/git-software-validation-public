@@ -1,10 +1,9 @@
 from pydantic import BaseModel, EmailStr, constr
-from typing import Annotated
 
 class UserCreate(BaseModel):
-    name: Annotated[str,constr(strip_whitespace=True, min_length=1, max_length=50)]
+    name: constr(strip_whitespace=True, min_length=1, max_length=50) # type: ignore
     email: EmailStr
-    password: Annotated[str,constr(strip_whitespace=True, min_length=8, max_length=128)]
+    password: constr(strip_whitespace=True, min_length=8, max_length=128) # type: ignore
 
 class UserResponse(BaseModel):
     id: int
@@ -12,4 +11,8 @@ class UserResponse(BaseModel):
     email: EmailStr
 
     class Config:
-        orm_mode = True
+        orm_mode=True
+
+class UserLogin(BaseModel):
+    email: EmailStr
+    password: constr(strip_whitespace=True, min_length=8, max_length=128) # type: ignore
