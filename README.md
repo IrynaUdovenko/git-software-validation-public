@@ -111,7 +111,7 @@ This layered structure improves debuggability in both local and CI environments.
 
 ## How to Run
 
-1. Set up a virtual environment (requires Python 3.9+ and Git CLI):
+1. Set up a virtual environment (requires Python 3.11+ and Git CLI):
 ```bash
 python3 -m venv venv
 source venv/bin/activate
@@ -181,7 +181,7 @@ Details of the planned test cases are documented in [`NOT_IMPLEMENTED.md`](./NOT
 This project is fully compatible with CI environments and was designed to support clean, reproducible test runs.
 
 ### CI Requirements
-- Python 3.9 or later  
+- Python 3.11 or later  
 - Git CLI installed and accessible in `$PATH`  
 - No global Git configuration dependencies  
 - Ability to run shell commands via subprocess  
