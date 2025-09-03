@@ -3,7 +3,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
 from api.schemas.users import UserCreate, UserResponse, UserLogin
 from api.schemas.auth import TokenResponse
-from api.crud.user import create_user, authenticate_user, get_current_user
+from api.crud.user import create_user, authenticate_user, get_current_user, update_last_login
 from api.db import get_session
 from api.utils.token_utils import create_access_token
 
@@ -31,6 +31,8 @@ async def login_user(credentials: UserLogin, db: AsyncSession = Depends(get_sess
             detail="Invalid email or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
+
+    await update_last_login(user.id, db)
 
     token = create_access_token({"sub": user.email})
     return {"access_token": token, "token_type": "bearer"}
