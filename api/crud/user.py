@@ -2,8 +2,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError, OperationalError, SQLAlchemyError
 from api.utils.auth_utils import hash_password, validate_password
 from api.utils.token_utils import decode_access_token
-from sqlalchemy import select
+from sqlalchemy import select, update
 from utils.exceptions import EmailAlreadyExists, DatabaseError, DatabaseUnavailable
+from datetime import datetime, timezone
 
 from api.models.users import User
 from api.schemas.users import UserCreate
@@ -54,3 +55,15 @@ async def get_current_user(token: str, session: AsyncSession = AsyncSession) -> 
     user = result.scalar_one_or_none()
 
     return UserResponse.from_orm(user) if user else None
+
+async def update_last_login(user_id: int, session: AsyncSession):
+    try:
+        stmt = update(User).where(User.id == user_id).values(last_login=datetime.now(timezone.utc))
+        await session.execute(stmt)
+        await session.commit()
+    except SQLAlchemyError as e:
+        raise DatabaseError from e
+    finally:
+        if session.in_transaction():
+            await session.rollback()
+        
