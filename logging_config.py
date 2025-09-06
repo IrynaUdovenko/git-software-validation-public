@@ -23,9 +23,8 @@ def setup_logging(log_dir: Path = Path("logs")):
     logger_configs = {
         "git_test": ("Git core functionality tests", logging.INFO),
         "infra": ("Environment and setup", logging.DEBUG),
-        "auth": ("Authentication handling", logging.WARNING),
-        "client_sim": ("Client-side Git operations", logging.INFO),
-        "ci": ("CI pipeline logging", logging.DEBUG),
+        "api_test": ("API functionality tests", logging.INFO),
+        "api_backend": ("API application (endpoints)", logging.INFO)
     }
 
     loggers = {}

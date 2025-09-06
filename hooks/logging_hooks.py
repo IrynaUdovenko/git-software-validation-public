@@ -1,37 +1,57 @@
 import pytest
-
 from logging_config import loggers
 
-# Get the loggers for different parts of the project
 infra_logger = loggers["infra"]
 git_logger = loggers["git_test"]
+api_logger = loggers["api_test"]
+
+# Global map: nodeid -> list of markers
+_nodeid_to_markers = {}
+
+
+@pytest.hookimpl
+def pytest_collection_modifyitems(session, config, items):
+    """Collect markers for each test item and store them in a global map."""
+    global _nodeid_to_markers
+    _nodeid_to_markers = {}
+    for item in items:
+        markers = [m.name for m in item.iter_markers()]
+        _nodeid_to_markers[item.nodeid] = markers
+
+
+def _pick_logger(nodeid: str):
+    """Select the appropriate logger based on stored markers."""
+    markers = _nodeid_to_markers.get(nodeid, [])
+    if "phase1" in markers:
+        return git_logger
+    elif "phase2" in markers:
+        return api_logger
+    else:
+        return infra_logger
 
 
 @pytest.hookimpl(tryfirst=True)
 def pytest_runtest_logstart(nodeid, location):
-    """
-    Log the beginning of each test case using our custom git_logger.
-    """
-    git_logger.info(f"=========== START TEST: {nodeid} ===========")
+    """Log the start of a test with the appropriate logger."""
+    logger = _pick_logger(nodeid)
+    logger.info(f"=========== START TEST: {nodeid} ===========")
     infra_logger.info(f"=========== START TEST: {nodeid} ===========")
 
 
 @pytest.hookimpl()
 def pytest_runtest_logreport(report):
-    """
-    Log the result of each test phase (setup, call, teardown).
-    Shows detailed info on failure for better debugging.
-    """
+    """Log the outcome of each test phase with the appropriate logger."""
+    logger = _pick_logger(report.nodeid)
     phase = report.when
     nodeid = report.nodeid
 
     if report.failed:
-        git_logger.error(f"TEST {phase.upper()} FAILED: {nodeid}")
+        logger.error(f"TEST {phase.upper()} FAILED: {nodeid}")
         if hasattr(report.longrepr, "reprcrash"):
-            git_logger.error(f"{report.longrepr.reprcrash.message}")
+            logger.error(report.longrepr.reprcrash.message)
         else:
-            git_logger.error(f"Traceback:\n{str(report.longrepr)}")
+            logger.error(f"Traceback:\n{report.longrepr}")
     elif report.passed and phase == "call":
-        git_logger.info(f"TEST PASSED: {nodeid}")
+        logger.info(f"TEST PASSED: {nodeid}")
     elif report.skipped:
-        git_logger.warning(f"TEST {phase.upper()} SKIPPED: {nodeid}")
+        logger.warning(f"TEST {phase.upper()} SKIPPED: {nodeid}")

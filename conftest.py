@@ -4,5 +4,7 @@ pytest_plugins = [
     "fixtures.client_paths",
     "hooks.logging_hooks",
     "hooks.timing_hooks",
-    "hooks.config_hooks"
+    "hooks.config_hooks",
+    "fixtures.api.auth",
+    "fixtures.api.common"
 ]
