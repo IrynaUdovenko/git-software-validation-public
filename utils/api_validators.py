@@ -1,6 +1,6 @@
 from logging_config import loggers
+from jose import jwt
 
-# Get the logger for api tests
 infra_logger = loggers["infra"]
 
 def assert_json_response(response, expected_status: int) -> dict:
@@ -36,6 +36,7 @@ def assert_user_response(
     expected_last_login=None,
 ):
     """Validate user response JSON structure and values."""
+    infra_logger.debug("Starting validation of response body structure...")
 
     # Expected values (None means "we still expect field but value check is None")
     expected_fields = {
@@ -60,3 +61,38 @@ def assert_user_response(
     for field in forbidden_fields:
         assert field not in data, f"Response should not expose '{field}'"
         infra_logger.debug(f"Field '{field}' is correctly not present in response.")
+
+def assert_token_response(data: dict, expected_type="bearer"):
+    """Validate structure of token response (without decoding JWT)."""
+    infra_logger.debug("Starting validation of token response (without decoding JWT)...")
+    required_fields = ["access_token", "token_type"]
+
+    for field in required_fields:
+        assert field in data, f"Missing '{field}' in token response"
+        infra_logger.debug(f"Field '{field}' is present in response.")
+
+
+    assert data["token_type"] == expected_type, f"Unexpected token_type: {data['token_type']}"
+    infra_logger.debug(f"'Token type' has expected value: {expected_type}")
+    assert isinstance(data["access_token"], str), "access_token should be a string"
+    assert len(data["access_token"]) > 0, "access_token is empty"
+    infra_logger.debug("Token exists and is a non-empty string.")
+
+def assert_token_payload(token: str, expected_email: str):
+    """Decode JWT without verifying signature and validate claims."""
+    infra_logger.debug("Starting validation of JWT token payload...")
+
+    parts = token.split(".")
+    assert len(parts) == 3, f"Invalid JWT format: {token}"
+    infra_logger.debug("Received token has valid JWT format (consists of three parts).")
+    # Getting payload without signature verification
+    claims = jwt.get_unverified_claims(token)
+
+    # Claims validation
+    assert claims.get("sub") == expected_email, f"Expected sub={expected_email}, got {claims.get('sub')}"
+    infra_logger.debug(f"'sub' claim has expected email value: {expected_email}")
+    assert "exp" in claims, "Missing 'exp' in token"
+    assert claims["exp"] > 0, f"Invalid exp claim: {claims['exp']}"
+    infra_logger.debug("'exp' claim is present and valid in token payload part.")
+
+
