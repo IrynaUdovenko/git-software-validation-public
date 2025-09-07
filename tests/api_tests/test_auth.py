@@ -42,3 +42,18 @@ def test_login_user(base_url, register_user):
     assert_token_response(parsed_data)
     assert_token_payload(parsed_data["access_token"], expected_email=login_payload["email"])
     api_logger.info("Token response status code and body validated successfully.")
+
+@pytest.mark.phase2
+@pytest.mark.users
+@pytest.mark.POC
+def test_get_me(base_url, login_user):
+    """Positive test: fetch current user data with valid token."""
+    headers = {"Authorization": f"Bearer {login_user['token']}"}
+    response = requests.get(f"{base_url}/users/me", headers=headers, timeout=API_TIMEOUT)
+
+    elapsed = round(response.elapsed.total_seconds(), 3)
+    api_logger.info(f"GET /users/me returned: {response.status_code} in {elapsed} seconds.")
+    
+    parsed = assert_json_response(response, expected_status=200)
+    assert_user_response(parsed, expected_name=login_user["name"], expected_email=login_user["email"], expected_last_login=login_user["login_time"])
+    api_logger.info("User /me response validated successfully.")

@@ -4,6 +4,7 @@ from logging_config import loggers
 import requests
 from utils.constants import API_TIMEOUT
 from utils.api_validators import assert_json_response
+from datetime import datetime, timezone
 
 infra_logger = loggers["infra"]
 
@@ -36,3 +37,22 @@ def register_user(base_url, user_payload):
     data = assert_json_response(response, expected_status=201)
     infra_logger.info("User successfully registered.")
     return data, user_payload["password"]
+
+@pytest.fixture
+def login_user(base_url, register_user):
+    """Register and login user, return access token."""
+    user_data, password = register_user
+    login_payload = {"email": user_data["email"], "password": password}
+    infra_logger.info(f'Log in user with email : {login_payload["email"]}')
+    before_login_time = datetime.now(timezone.utc)
+    response = requests.post(f"{base_url}/users/login", json=login_payload, timeout=API_TIMEOUT)
+    parsed = assert_json_response(response, expected_status=200)
+    infra_logger.info("User successfully logged in and token received.")
+    return {
+        "id": user_data["id"],
+        "name": user_data["name"],
+        "email": user_data["email"],
+        "password": password,
+        "token": parsed["access_token"],
+        "login_time": before_login_time
+    }
