@@ -12,8 +12,8 @@ router = APIRouter(
     tags=["Users"],
 )
 
-# gets token from header
-auth_scheme = HTTPBearer()
+# gets token from header or returns None if no header
+auth_scheme = HTTPBearer(auto_error=False)
 
 # registers user
 @router.post("/", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
@@ -39,7 +39,13 @@ async def login_user(credentials: UserLogin, db: AsyncSession = Depends(get_sess
 
 #get user
 @router.get("/me", response_model=UserResponse)
-async def get_user_details(creds: HTTPAuthorizationCredentials = Depends(auth_scheme), db: AsyncSession = Depends(get_session)):
+async def get_user_details(creds: HTTPAuthorizationCredentials | None = Depends(auth_scheme), db: AsyncSession = Depends(get_session)):
+    if creds is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     token = creds.credentials
     user = await get_current_user(token, db)
     if not user:
