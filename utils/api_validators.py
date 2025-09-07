@@ -1,5 +1,7 @@
 from logging_config import loggers
 from jose import jwt
+from utils.constants import LAST_LOGIN_DELTA
+from datetime import datetime, timedelta, timezone
 
 infra_logger = loggers["infra"]
 
@@ -33,7 +35,7 @@ def assert_user_response(
     data: dict,
     expected_name: str,
     expected_email: str,
-    expected_last_login=None,
+    expected_last_login: datetime | None = None,
 ):
     """Validate user response JSON structure and values."""
     infra_logger.debug("Starting validation of response body structure...")
@@ -52,6 +54,16 @@ def assert_user_response(
         if field == "id":
             assert isinstance(data["id"], int), f"id should be int, got {type(data['id'])}"
             infra_logger.debug("Field 'id' is of type int as expected.")
+        elif field == "last_login" and expected is not None:
+            # Convert API value (ISO string) to datetime
+            parsed = datetime.fromisoformat(data["last_login"].replace("Z", "+00:00"))
+            now = datetime.now(timezone.utc)
+            assert expected <= parsed <= now + timedelta(seconds=LAST_LOGIN_DELTA), (
+                f"last_login {parsed} not within expected range "
+                f"[{expected}, {now + timedelta(seconds=LAST_LOGIN_DELTA)}]"
+            )
+            infra_logger.debug(f"Field 'last_login':{parsed}  is within expected range around login time: {expected}.")
+
         else:
             assert data[field] == expected, f"Expected {field}={expected}, got {data[field]}"
             infra_logger.debug(f"Field '{field}' has expected value: {expected}")
