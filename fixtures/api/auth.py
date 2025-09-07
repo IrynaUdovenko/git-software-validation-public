@@ -28,15 +28,22 @@ def user_payload(user_payload_factory):
     return user_payload_factory()
 
 @pytest.fixture
-def register_user(base_url, user_payload):    
-    """Fixture to register a user before test and return its data."""
-    infra_logger.info(f'Registering user with email : {user_payload["email"]}')
-    response = requests.post(base_url+"/users", json=user_payload, timeout=API_TIMEOUT)
-    elapsed = round(response.elapsed.total_seconds(), 3)
-    infra_logger.info(f'POST /users returned: {response.status_code} in : {elapsed} seconds.')
-    data = assert_json_response(response, expected_status=201)
-    infra_logger.info("User successfully registered.")
-    return data, user_payload["password"]
+def register_user_factory():
+    """Factory fixture to register users before test and return its data."""
+    def _make_register_user(base_url, user_payload):
+        infra_logger.info(f'Registering user with email : {user_payload["email"]}')
+        response = requests.post(base_url+"/users", json=user_payload, timeout=API_TIMEOUT)
+        elapsed = round(response.elapsed.total_seconds(), 3)
+        infra_logger.info(f'POST /users returned: {response.status_code} in : {elapsed} seconds.')
+        data = assert_json_response(response, expected_status=201)
+        infra_logger.info("User successfully registered.")
+        return data, user_payload["password"]
+    return _make_register_user
+
+@pytest.fixture
+def register_user(register_user_factory, base_url, user_payload):
+    """Simple fixture to register one user without custom params."""
+    return register_user_factory(base_url, user_payload)
 
 @pytest.fixture
 def login_user(base_url, register_user):
