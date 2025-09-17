@@ -1,0 +1,64 @@
+name: CLI + API tests in docker environment
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create .env.ci
+        run: |
+          cat > .env.ci <<EOF
+          POSTGRES_DB=git_validation
+          POSTGRES_USER=git_validation_user
+          POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+          DB_HOST=db
+          DB_PORT=5432
+          API_PORT=8000
+          SECRET_KEY=${SECRET_KEY}
+          ACCESS_TOKEN_EXPIRE_MINUTES=30
+          ALGORITHM=HS256
+          EOF
+        env:
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          SECRET_KEY: ${{ secrets.SECRET_KEY }}
+
+      - name: Build & run docker compose
+        run: |
+          docker compose -f docker-compose.ci.yml --env-file .env.ci \
+            up --build --abort-on-container-exit --exit-code-from tests
+
+      - name: Upload Pytest HTML report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pytest-html-report
+          path: reports/pytest_report.html
+
+      - name: Upload coverage HTML report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-html-report
+          path: htmlcov/
+
+      - name: Upload custom logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-logs
+          path: logs/
+
+      - name: Teardown & cleanup
+        if: always()
+        run: |
+          docker compose -f docker-compose.ci.yml down -v
+          rm -f .env.ci

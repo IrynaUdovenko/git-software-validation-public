@@ -1,0 +1,38 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  api:
+    build: .
+    env_file: .env.ci
+    depends_on:
+      db:
+        condition: service_healthy
+
+  tests:
+    build: .
+    env_file: .env.ci
+    depends_on:
+      - api
+    working_dir: /workspace
+    volumes:
+      - .:/workspace
+    command: >
+      pytest
+      --cov=utils
+      --cov=fixtures
+      --cov-report=term-missing
+      --cov-report=html
+      --cov-fail-under=80
+      --html=reports/pytest_report.html
+      --self-contained-html
+      -v
