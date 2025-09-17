@@ -2,7 +2,7 @@ name: CLI + API tests in docker environment
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, m2_backend_start ]
   pull_request:
     branches: [ main ]
   workflow_dispatch:
