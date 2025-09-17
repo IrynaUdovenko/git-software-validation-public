@@ -23,6 +23,7 @@ jobs:
           DB_HOST=db
           DB_PORT=5432
           API_PORT=8000
+          API_BASE_URL=http://api:8000
           SECRET_KEY=${SECRET_KEY}
           ACCESS_TOKEN_EXPIRE_MINUTES=30
           ALGORITHM=HS256
