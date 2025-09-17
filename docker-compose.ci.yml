@@ -19,22 +19,22 @@ services:
         condition: service_healthy
 
   tests:
-  build:
-    context: .
-    dockerfile: Dockerfile.test
-  env_file: .env.ci
-  depends_on:
-    - api
-  working_dir: /workspace
-  volumes:
-    - .:/workspace
-  command: >
-    pytest
-    --cov=utils
-    --cov=fixtures
-    --cov-report=term-missing
-    --cov-report=html
-    --cov-fail-under=80
-    --html=reports/pytest_report.html
-    --self-contained-html
-    -v
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    env_file: .env.ci
+    depends_on:
+      - api
+    working_dir: /workspace
+    volumes:
+      - .:/workspace
+    command: >
+      pytest
+      --cov=utils
+      --cov=fixtures
+      --cov-report=term-missing
+      --cov-report=html
+      --cov-fail-under=80
+      --html=reports/pytest_report.html
+      --self-contained-html
+      -v
