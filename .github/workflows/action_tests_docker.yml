@@ -61,5 +61,5 @@ jobs:
       - name: Teardown & cleanup
         if: always()
         run: |
-          docker compose -f docker-compose.ci.yml down -v
+          docker compose -f docker-compose.ci.yml --env-file .env.ci down -v
           rm -f .env.ci

@@ -17,6 +17,11 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --method=GET http://localhost:8000/health || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
 
   tests:
     build:
@@ -24,7 +29,8 @@ services:
       dockerfile: Dockerfile.test
     env_file: .env.ci
     depends_on:
-      - api
+      api:
+        condition: service_healthy
     working_dir: /workspace
     volumes:
       - .:/workspace

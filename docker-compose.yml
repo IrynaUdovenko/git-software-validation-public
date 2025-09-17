@@ -23,8 +23,9 @@ services:
         condition: service_healthy
     ports:
       - "${API_PORT}:8000"
+    command: uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload # --reload for development
     volumes:
-      - .:/app
+      - .:/app # for development, to reflect code changes
 
 volumes:
   db-data:
